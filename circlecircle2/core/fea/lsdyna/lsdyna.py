@@ -13,14 +13,17 @@ class LsDyna(Solver):
         self.translate_keywords = {}
         self.not_support_keywords = []
 
+        self.current_parser = None
+
     def reset(self):
+        self.current_parser = None
         self.not_support_keywords.clear()
 
     def parse(self, *args, **kwargs):
         file_path = kwargs.get("file_path", args[0] if len(args) > 0 else None)
 
-        if file_path is not None:
-            with open(file=file_path, mode="r", encoding="utf-8") as f:
+        if file_path:
+            with open(file=file_path, mode="r", encoding="utf-8", errors="ignore") as f:
                 try:
                     for line in f:
 
@@ -52,8 +55,6 @@ class LsDyna(Solver):
                         else:
                             if self.current_parser is not None:
                                 self.current_parser.parse(line_raw=line)
-                            else:
-                                continue
 
                 except Exception as e:
                     raise e
@@ -62,7 +63,7 @@ class LsDyna(Solver):
                 self.logger.warning(f"Ls-Dyna not support keywords: {not_support_keyword}")
 
         else:
-            self.logger.error(f"ERROR: file_path cannot be empty\n")
+            self.logger.error(f"file_path cannot be empty\n")
 
     def translate(self, file_path):
         print(f"lsdyna translate")
