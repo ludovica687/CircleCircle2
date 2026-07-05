@@ -11,7 +11,7 @@ class PamCrash(Solver):
             "NODE": NodeParser(),
         }
         self.translate_keywords = {}
-        self.not_support_keywords = []
+        self.not_support_keywords = set()
 
         self.current_parser = None
 
@@ -21,6 +21,7 @@ class PamCrash(Solver):
 
     def parse(self, *args, **kwargs):
         file_path = kwargs.get("file_path", args[0] if len(args) > 0 else None)
+        version = kwargs.get("version", args[1] if len(args) > 1 else None)
 
         if file_path:
             with open(file=file_path, mode="r", encoding="utf-8", errors="ignore") as f:
@@ -29,14 +30,23 @@ class PamCrash(Solver):
                         if (len(line.strip()) == 0) or line.startswith("$"):
                             continue
                         else:
-                            pamcrash_keyword = line.split()[0].strip().upper()
+                            line_raw_split = line.split("/")
+                            line_raw_length = len(line_raw_split)
 
-                            if pamcrash_keyword in self.parse_keywords:
-                                self.current_parser = self.parse_keywords[pamcrash_keyword]
-                                self.current_parser.parse(line_raw=line)
-                                continue
-                            else:
-                                self.not_support_keywords.append(pamcrash_keyword)
+                            if line_raw_length == 2:
+                                pamcrash_keyword = line_raw_split[0].strip().upper()
+
+                                if pamcrash_keyword in self.parse_keywords:
+                                    self.current_parser = self.parse_keywords[pamcrash_keyword]
+                                    self.current_parser.parse(line_raw=line, version=version)
+                                    continue
+                                else:
+                                    self.not_support_keywords.add(pamcrash_keyword)
+                                    self.current_parser = None
+                                    continue
+
+                            elif line_raw_length == 1 and (self.current_parser is not None):
+                                self.current_parser.parse(line_raw=line, version=version)
                                 continue
 
                 except Exception as e:

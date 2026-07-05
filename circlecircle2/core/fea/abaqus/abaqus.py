@@ -1,6 +1,7 @@
 from circlecircle2.utilities.logger import logger
 from circlecircle2.core.fea.solver import Solver
 from circlecircle2.core.fea.abaqus.parser.node_parser import NodeParser
+from circlecircle2.core.fea.abaqus.translator.node_translator import NodeTranslator
 
 
 class Abaqus(Solver):
@@ -10,17 +11,23 @@ class Abaqus(Solver):
         self.parse_keywords = {
             "*NODE": NodeParser(),
         }
-        self.translate_keywords = {}
-        self.not_support_keywords = []
+        self.translate_keywords = {
+            "*NODE": NodeTranslator(),
+        }
+        self.not_support_keywords = set()
 
         self.current_parser = None
+        self.current_translator = None
 
     def reset(self):
-        self.current_parser = None
         self.not_support_keywords.clear()
+
+        self.current_parser = None
+        self.current_translator = None
 
     def parse(self, *args, **kwargs):
         file_path = kwargs.get("file_path", args[0] if len(args) > 0 else None)
+        version = kwargs.get("version", args[1] if len(args) > 1 else None)
 
         if file_path:
             with open(file=file_path, mode="r", encoding="utf-8", errors="ignore") as f:
@@ -36,21 +43,32 @@ class Abaqus(Solver):
                                 self.current_parser = self.parse_keywords[abaqus_keyword]
                                 continue
                             else:
-                                self.not_support_keywords.append(abaqus_keyword)
+                                self.not_support_keywords.add(abaqus_keyword)
                                 self.current_parser = None
                                 continue
                         else:
                             if self.current_parser:
-                                self.current_parser.parse(line_raw=line)
+                                self.current_parser.parse(line_raw=line, version=version)
 
                 except Exception as e:
                     raise e
 
             for not_support_keyword in self.not_support_keywords:
-                self.logger.warning(f"ABAQUS not support keyword: {not_support_keyword}")
+                self.logger.warning(f"ABAQUS WARNING: not support keyword: {not_support_keyword}")
 
         else:
-            self.logger.error(f"file path cannot be empty\n")
+            self.logger.error(f"ABAQUS PARSER ERROR: file path cannot be empty\n")
 
-    def translate(self, file_path):
-        pass
+    def translate(self, *args, **kwargs):
+        file_path = kwargs.get("file_path", args[0] if len(args) > 0 else None)
+        version = kwargs.get("version", args[1] if len(args) > 1 else None)
+
+        if file_path:
+            for key, translator in self.translate_keywords.items():
+                self.current_translator = translator
+                self.current_translator.translate(version=version)
+
+            self.logger.info(f"ABAQUS translation finished")
+
+        else:
+            self.logger.error(f"ABAQUS TRANSLATOR ERROR: file path cannot be empty\n")

@@ -13,5 +13,7 @@ class Node(ABC):
         self.y = kwargs.get("y", args[2] if len(args) > 2 else None)
         self.z = kwargs.get("z", args[3] if len(args) > 3 else None)
 
+        self.xyz = [self.x, self.y, self.z]
+
     def __repr__(self):
         return f"node id: {self.uid}, x: {self.x}, y: {self.y}, z: {self.z}\n"

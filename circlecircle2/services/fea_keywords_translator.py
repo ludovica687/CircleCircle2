@@ -12,6 +12,9 @@ class FeaKeywordsTranslator:
 
         self.dataframe = dataframe
 
+        self.work_folder = None
+        self.current_file_name = None
+
     def reset(self):
         self.dataframe.reset()
 
@@ -32,55 +35,65 @@ class FeaKeywordsTranslator:
         solver2 = kwargs.get("solver2", args[3] if len(args) > 3 else None)
         version2 = kwargs.get("version2", args[4] if len(args) > 4 else None)
 
-        folder = os.path.dirname(file_path)
-        basename = os.path.basename(file_path)
-        file_name, file_extension = os.path.splitext(basename)
+        folder, basename, file_name, file_extension = self.disassemble_file_path(file_path=file_path)
+        self.work_folder = folder
+        self.current_file_name = file_name
 
         if solver1 == solver2:
-            self.logger.error(f"solver1 {solver1} and solver2 {solver2} must be different")
+            self.logger.error(f"FEA KEYWORDS TRANSLATOR ERROR: "
+                              f"solver1 {solver1} and solver2 {solver2} must be different\n")
 
         else:
             if solver1 == "lsdyna":
-                if version1 in ["12.0", "13.0"]:
+                if version1 in ["12.0", "13.0"] and (file_extension.lower() == ".k" or file_extension.lower() == ".key"):
                     self._lsdyna(version=version1, file_path=file_path, mode="parse")
                 else:
-                    self.logger.error(f"current ls-dyna version {version1} not supported")
+                    self.logger.error(f"FEA KEYWORDS TRANSLATOR ERROR: "
+                                      f"current ls-dyna version {version1} or extension {file_extension} not supported\n")
 
             elif solver1 == "abaqus":
-                if version1 in ["6.14"]:
+                if version1 in ["6.14"] and (file_extension.lower() == ".inp" or file_extension.lower() == ".geo"):
                     self._abaqus(version=version1, file_path=file_path, mode="parse")
                 else:
-                    self.logger.error(f"current abaqus version {version1} not supported")
+                    self.logger.error(f"FEA KEYWORDS TRANSLATOR ERROR: "
+                                      f"current abaqus version {version1} or extension {file_extension} not supported\n")
 
             elif solver1 == "pamcrash":
-                if version1 in ["2020"]:
+                if version1 in ["2020"] and (file_extension.lower() == ".pc" or file_extension.lower() == ".inc"):
                     self._pamcrash(version=version1, file_path=file_path, mode="parse")
                 else:
-                    self.logger.error(f"current pamcrash version {version1} not supported")
+                    self.logger.error(f"FEA KEYWORDS TRANSLATOR ERROR: "
+                                      f"current pamcrash version {version1} or extension {file_extension} not supported\n")
 
             if solver2 == "lsdyna":
                 if version2 in ["12.0", "13.0"]:
                     self._lsdyna(version=version2, file_path=file_path, mode="translate")
                 else:
-                    self.logger.error(f"current ls-dyna version {version2} not supported")
+                    self.logger.error(f"FEA KEYWORDS TRANSLATOR ERROR: "
+                                      f"current ls-dyna version {version2} not supported\n")
 
             elif solver2 == "abaqus":
                 if version2 in ["6.14"]:
                     self._abaqus(version=version2, file_path=file_path, mode="translate")
                 else:
-                    self.logger.error(f"current abaqus version {version2} not supported")
+                    self.logger.error(f"FEA KEYWORDS TRANSLATOR ERROR: "
+                                      f"current abaqus version {version2} not supported\n")
 
             elif solver2 == "pamcrash":
                 if version2 in ["2020"]:
                     self._pamcrash(version=version2, file_path=file_path, mode="translate")
                 else:
-                    self.logger.error(f"current pamcrash version {version2} not supported")
+                    self.logger.error(f"FEA KEYWORDS TRANSLATOR ERROR: "
+                                      f"current pamcrash version {version2} not supported\n")
+
+            elif solver2 == "parse_only":
+                self.logger.info(f"only parse fea file and do not translate any keywords\n")
 
     def _lsdyna(self, version, file_path, mode):
         lsdyna = LsDyna()
 
         if mode == "parse":
-            lsdyna.parse(file_path=file_path)
+            lsdyna.parse(file_path=file_path, version=version)
 
         elif mode == "translate":
             self.logger.debug(f"lsdyna translate mode, version: {version}, file_path: {file_path}")
@@ -89,32 +102,59 @@ class FeaKeywordsTranslator:
         abaqus = Abaqus()
 
         if mode == "parse":
-            abaqus.parse(file_path=file_path)
+            abaqus.parse(file_path=file_path, version=version)
 
         elif mode == "translate":
-            self.logger.debug(f"abaqus translate mode, version: {version}, file_path: {file_path}")
+            abaqus.translate(file_path=file_path, version=version)
+
+            folder, basename, file_name, file_extension = self.disassemble_file_path(file_path=file_path)
+
+            new_file_path = os.path.join(folder, file_name + "_test.inp")
+
+            self.write_file(file_path=new_file_path)
 
     def _pamcrash(self, version, file_path, mode):
         pamcrash = PamCrash()
 
         if mode == "parse":
-            pamcrash.parse(file_path=file_path)
+            pamcrash.parse(file_path=file_path, version=version)
 
         elif mode == "translate":
             self.logger.debug(f"pamcrash translate mode, version: {version}, file_path: {file_path}")
+
+    def write_file(self, file_path):
+        if len(self.dataframe.output_storge) > 0:
+            with open(file_path, mode="w", encoding="utf-8", errors="ignore") as f:
+                for keyword, content in self.dataframe.output_storge.items():
+                    for line in content:
+                        f.write(line)
+
+            self.logger.info(f"All Done\n")
+
+        else:
+            self.logger.warning(f"FEA KEYWORDS TRANSLATOR WARNING: no data need to translate\n")
+
+    def disassemble_file_path(self, file_path):
+        folder = os.path.dirname(file_path)
+        basename = os.path.basename(file_path)
+        file_name, file_extension = os.path.splitext(basename)
+
+        return folder, basename, file_name, file_extension
 
 
 fea_keywords_translator = FeaKeywordsTranslator()
 
 
 if __name__ == '__main__':
-    # file_path = r"C:\Users\jiand\Downloads\Test_Data\test_model.k"
+    file_path = r"C:\Users\jiand\Downloads\Ludovica\Test_Data\test_model.k"
     # file_path = r"C:\Users\jiand\Downloads\Test_Data\test_model.inp"
-    file_path = r"C:\Users\jiand\Downloads\Test_Data\test_.pc"
+    # file_path = r"C:\Users\jiand\Downloads\Test_Data\test_.pc"
 
     fea_keywords_translator.translate(file_path=file_path,
-                                      solver1="pamcrash",
-                                      version1="2020",
+                                      solver1="lsdyna",
+                                      version1="12.0",
                                       solver2="abaqus",
-                                      version2="7.14")
-    print(f"Node Length is {len(fea_keywords_translator.dataframe.node)}")
+                                      version2="6.14")
+
+    d = fea_keywords_translator.dataframe
+    print(d.parameter)
