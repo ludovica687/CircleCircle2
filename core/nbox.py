@@ -254,6 +254,7 @@ class Conv(nn.Module):
                  out_channels: int,
                  hidden_layers: list[int],
                  kernel_size: int,
+                 padding: int,
                  activation=nn.ReLU,
                  dropout: float = 0.0,
                  ):
@@ -263,10 +264,16 @@ class Conv(nn.Module):
 
         # Dynamically construct convolutional layer blocks
         for layer in hidden_layers:
+
             if conv_type == "1d":
                 current_conv = nn.Conv1d(in_channels=in_channels,
-                                         out_channels=out_channels,)
+                                         out_channels=out_channels,
+                                         kernel_size=kernel_size,
+                                         padding=padding)
+            else:
+                current_conv = None
 
+            layers.append(current_conv)
 
 
 class DummyMLPClassificationDataset(Dataset):
