@@ -1,0 +1,20 @@
+2026-07-21 21:48:05,171 | WARNING | user_logger | current file:    E:\PythonProject\circlecircle2\Test_Items\test_model.json,    crash_box is empty
+
+2026-07-21 21:48:05,171 | WARNING | user_logger | current file:    E:\PythonProject\circlecircle2\Test_Items\test_model.json,    end_plate is empty
+
+2026-07-21 21:48:05,171 | DEBUG | user_logger | Testing dataset: E:\PythonProject\circlecircle2\Test_Items\test_model.json
+2026-07-21 21:48:05,171 | DEBUG | user_logger | include part name: ['upper_beam', 'lower_beam', 'tow_hook', 'bracket']
+2026-07-21 21:48:05,171 | DEBUG | user_logger | include data batch: 4
+
+2026-07-21 21:48:05,172 | DEBUG | user_logger | part name: upper_beam
+2026-07-21 21:48:05,172 | DEBUG | user_logger | x shape is torch.Size([182, 6]), y shape is torch.Size([])
+
+2026-07-21 21:48:05,172 | DEBUG | user_logger | part name: lower_beam
+2026-07-21 21:48:05,172 | DEBUG | user_logger | x shape is torch.Size([91, 6]), y shape is torch.Size([])
+
+2026-07-21 21:48:05,173 | DEBUG | user_logger | part name: tow_hook
+2026-07-21 21:48:05,173 | DEBUG | user_logger | x shape is torch.Size([3158, 6]), y shape is torch.Size([])
+
+2026-07-21 21:48:05,173 | DEBUG | user_logger | part name: bracket
+2026-07-21 21:48:05,173 | DEBUG | user_logger | x shape is torch.Size([32, 6]), y shape is torch.Size([])
+
