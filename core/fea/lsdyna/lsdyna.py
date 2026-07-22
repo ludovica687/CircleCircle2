@@ -66,6 +66,11 @@ from circlecircle2.core.fea.lsdyna.parser.database_matsum_parser import Database
 from circlecircle2.core.fea.lsdyna.parser.database_nodout_parser import DatabaseNodoutParser
 from circlecircle2.core.fea.lsdyna.parser.database_binary_intfor_parser import DatabaseBinaryIntforParser
 from circlecircle2.core.fea.lsdyna.parser.control_dynamic_relaxation_parser import ControlDynamicRelaxationParser
+from circlecircle2.core.fea.lsdyna.parser.contact_tied_nodes_to_surface_offset_id_parser import ContactTiedNodesToSurfaceOffsetIDParser
+from circlecircle2.core.fea.lsdyna.parser.control_bulk_viscosity_parser import ControlBulkViscosityParser
+from circlecircle2.core.fea.lsdyna.parser.control_output_parser import ControlOutputParser
+from circlecircle2.core.fea.lsdyna.parser.control_parallel_parser import ControlParallelParser
+from circlecircle2.core.fea.lsdyna.parser.database_disbout_parser import DatabaseDisboutParser
 from circlecircle2.core.fea.lsdyna.parser.end_parser import EndParser
 
 
@@ -119,6 +124,10 @@ class LsDyna(Solver):
             "*DATABASE_NODOUT": DatabaseNodoutParser(),
             "*DATABASE_BINARY_INTFOR": DatabaseBinaryIntforParser(),
             "*CONTROL_DYNAMIC_RELAXATION": ControlDynamicRelaxationParser(),
+            "*CONTROL_BULK_VISCOSITY": ControlBulkViscosityParser(),
+            "*CONTROL_OUTPUT": ControlOutputParser(),
+            "*CONTROL_PARALLEL": ControlParallelParser(),
+            "*DATABASE_DISBOUT": DatabaseDisboutParser(),
             "*END": EndParser(),
         }
 
@@ -148,6 +157,7 @@ class LsDyna(Solver):
             "*CONTACT_AUTOMATIC_SURFACE_TO_SURFACE_ID_TITLE": ContactAutomaticSurfaceToSurfaceIDTitleParser(),
             "*CONTACT_AUTOMATIC_SINGLE_SURFACE_ID": ContactAutomaticSingleSurfaceIDParser(),
             "*CONTACT_AUTOMATIC_SINGLE_SURFACE_ID_TITLE": ContactAutomaticSingleSurfaceIDTitleParser(),
+            "*CONTACT_TIED_NODES_TO_SURFACE_OFFSET_ID": ContactTiedNodesToSurfaceOffsetIDParser(),
         }
         self.translate_keywords = {}
         self.not_support_keywords = set()

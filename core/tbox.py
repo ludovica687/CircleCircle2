@@ -99,7 +99,7 @@ class TBox:
 
             part_info_dict[current_pid]["node_ids"] = current_part_nids
 
-            part_info_dict[current_pid]["node_coords"] = current_node_coords
+            part_info_dict[current_pid]["node_coords"] = F.normalize(current_node_coords, p=2, dim=1)
 
             part_info_dict[current_pid]["node_norms"] = current_node_norms
 

@@ -473,6 +473,95 @@ class TestDataset:
                 self.logger.debug(f"x shape is {x.shape}, y shape is {y.shape}\n")
 
 
+class FeaturesToTensorExtractor:
+    def __init__(self, device):
+        self.logger = logger
+        self.device = device
+
+    # only extract node features from .json, [x, y, z, n1, n2, n3]
+    def node_features(self, file_path, num_points):
+        if os.path.isfile(file_path):
+
+            current_dataset = []
+
+            with open(file_path, mode="r", encoding="utf-8", errors="ignore") as f:
+                current_dict = json.load(f)
+
+            # Combine the coordinates and normal of each part, along dim=1, [x, y, z, n1, n2, n3]
+            for part_name, value in current_dict.items():
+                part_coords = value["node_coords"]
+                part_norms = value["node_norms"]
+                part_label = value["label"]
+
+                if len(part_coords) > 0:
+                    part_coords_tensor = torch.tensor(part_coords, dtype=torch.float64, device=self.device)
+                    part_norms_tensor = torch.tensor(part_norms, dtype=torch.float64, device=self.device)
+                    part_labels_tensor = torch.tensor(part_label, dtype=torch.long, device=self.device)
+
+                    part_node_features_tensor = torch.cat((part_coords_tensor, part_norms_tensor), dim=1)
+
+                    part_node_features_tensor_shape_0 = part_node_features_tensor.shape[0]
+
+                    # If the input data is greater than num_points, a random sampling method is used
+                    if part_node_features_tensor_shape_0 > num_points:
+                        idx = torch.randperm(n=part_node_features_tensor_shape_0, device=self.device)[: num_points]
+
+                        part_node_features_tensor = part_node_features_tensor[idx]
+
+                    # If the input data is less than num_points, a repeated sampling method is used
+                    else:
+                        repeat_num = num_points - part_node_features_tensor_shape_0
+
+                        idx = torch.randint(low=0, high=part_node_features_tensor_shape_0, size=(repeat_num, ), device=self.device)
+
+                        extra_features = part_node_features_tensor[idx]
+
+                        noise = torch.randn_like(extra_features)
+
+                        extra_features = extra_features + noise * 0.01
+
+                        part_node_features_tensor = torch.cat((part_node_features_tensor, extra_features), dim=0)
+
+                    current_sample = {
+                        "part_name": part_name,
+                        "features": part_node_features_tensor,
+                        "label": part_labels_tensor
+                    }
+
+                    current_dataset.append(current_sample)
+
+            return current_dataset
+
+        else:
+            self.logger.warning(f"File {file_path} not found\n")
+
+            return None
+
+
+class NodeEmbedding(nn.Module):
+    """
+    Transform node features into a higher-dimensional space
+    node features [x, y, z, n1, n2, n3]
+    higher-dimensional features [x1, x2, x3, x4, x5, ,x6, ...]
+    """
+
+    def __init__(self,
+                 input_dim: int,
+                 output_dim: int,):
+        super().__init__()
+
+        mid_dim = int(output_dim / 2)
+
+        self.encoder = nn.Sequential(nn.Linear(input_dim, mid_dim),
+                                     nn.ReLU(),
+                                     nn.Linear(mid_dim, output_dim))
+
+    def forward(self, x):
+        x = self.encoder(x)
+
+        return x
+
+
 if __name__ == '__main__':
     # model = MLP(
     #     input_features=1,
@@ -509,9 +598,18 @@ if __name__ == '__main__':
     #     print(outputs)
 
     file_path = r"E:\PythonProject\circlecircle2\Test_Items\test_model.json"
-    dataset = NodeFeaturesMLPDataset(file_path=file_path)
+    # dataset = NodeFeaturesMLPDataset(file_path=file_path)
+    #
+    # dataset_tester = TestDataset(data_type="mlp")
+    # dataset_tester.test(dataset)
 
-    dataset_tester = TestDataset(data_type="mlp")
-    dataset_tester.test(dataset)
+    features_to_tensor_extractor = FeaturesToTensorExtractor(device="cuda")
+    current_dataset = features_to_tensor_extractor.node_features(file_path=file_path, num_points=200)
+
+    for i in current_dataset:
+        features_shape = i["features"].shape
+        print(i["part_name"])
+        print(f"shape is {features_shape}")
+        print(i["features"])
 
 

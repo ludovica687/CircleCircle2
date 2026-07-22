@@ -66,6 +66,7 @@ class DataFrame:
             "control_dynamic_relaxation": {},
             "database_sbtout": {},
             "database_rwforc": {},
+            "contact_tied_nodes_to_surface_id": {},
             "end": {},
         }
 
@@ -316,7 +317,7 @@ class DataFrame:
 
     @property
     def database_disbout(self):
-        return self.storge["database_disbotut"]
+        return self.storge["database_disbout"]
 
     @property
     def database_glstat(self):
@@ -357,6 +358,10 @@ class DataFrame:
     @property
     def database_rwforc(self):
         return self.storge["database_rwforc"]
+
+    @property
+    def contact_tied_nodes_to_surface_id(self):
+        return self.storge["contact_tied_nodes_to_surface_id"]
 
     @property
     def end(self):
