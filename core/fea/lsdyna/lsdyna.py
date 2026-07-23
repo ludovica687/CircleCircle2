@@ -71,6 +71,9 @@ from circlecircle2.core.fea.lsdyna.parser.control_bulk_viscosity_parser import C
 from circlecircle2.core.fea.lsdyna.parser.control_output_parser import ControlOutputParser
 from circlecircle2.core.fea.lsdyna.parser.control_parallel_parser import ControlParallelParser
 from circlecircle2.core.fea.lsdyna.parser.database_disbout_parser import DatabaseDisboutParser
+from circlecircle2.core.fea.lsdyna.parser.control_rigid_parser import ControlRigidParser
+from circlecircle2.core.fea.lsdyna.parser.control_solid_parser import ControlSolidParser
+from circlecircle2.core.fea.lsdyna.parser.database_extent_binary_parser import DatabaseExtentBinaryParser
 from circlecircle2.core.fea.lsdyna.parser.end_parser import EndParser
 
 
@@ -128,6 +131,9 @@ class LsDyna(Solver):
             "*CONTROL_OUTPUT": ControlOutputParser(),
             "*CONTROL_PARALLEL": ControlParallelParser(),
             "*DATABASE_DISBOUT": DatabaseDisboutParser(),
+            "*CONTROL_RIGID": ControlRigidParser(),
+            "*CONTROL_SOLID": ControlSolidParser(),
+            "*DATABASE_EXTENT_BINARY": DatabaseExtentBinaryParser(),
             "*END": EndParser(),
         }
 

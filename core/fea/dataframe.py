@@ -264,10 +264,6 @@ class DataFrame:
         return self.storge["database_extent_binary"]
 
     @property
-    def database_extent_binary(self):
-        return self.storge["database_extent_binary"]
-
-    @property
     def control_timestep(self):
         return self.storge["control_timestep"]
 
