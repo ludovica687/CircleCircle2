@@ -336,58 +336,18 @@ class NodeFeaturesMLPDataset(Dataset):
 
     usage:
 
-    file_path = r"E:\PythonProject\circlecircle2\Test_Items\material_mapping.json"
-
-    test_dataset = NodeMLPDataset(file_path)
-
     """
-    def __init__(self, file_path):
+    def __init__(self, node_features_list):
         self.logger = logger
-        self.file_path = file_path
-        self.name = file_path
-
-        if os.path.isfile(self.file_path):
-            with open(file_path, mode="r", encoding="utf-8", errors="ignore") as f:
-
-                self.part_dict = json.load(f)
-
-        else:
-            self.part_dict = {}
-            self.logger.error(f"File {self.file_path} not found. Dataset is empty\n")
-
-        self.keys = []
-
-        # check all part dict if there is an empty part dictionary
-        for part_name, value in self.part_dict.items():
-            part_coords = value["node_coords"]
-
-            if len(part_coords) > 0:
-                self.keys.append(part_name)
-            else:
-                self.logger.warning(f"current file:    {self.file_path},    {part_name} is empty\n")
+        self.node_features_list = node_features_list
 
     def __len__(self):
-        return len(self.keys)
+        return len(self.node_features_list)
 
     def __getitem__(self, idx):
-        # part_dict format:
-        # name: {"node_ids": [], "node_coords": [], "node_norms": [], "element_ids": [], "element_norms": [], "element_areas": [], "label": -1}
-        part_name = self.keys[idx]
+        current_data = self.node_features_list[idx]
 
-        part = self.part_dict[part_name]
-
-        coords = torch.tensor(part["node_coords"], dtype=torch.float32)
-        coords = F.normalize(coords, p=2, dim=1)    # p=2 to calculate Euclidean distance
-
-        norms = torch.tensor(part["node_norms"], dtype=torch.float32)
-
-        label = torch.tensor(part["label"], dtype=torch.long)
-
-        x = torch.cat((coords, norms), dim=1)
-
-        y = label
-
-        return x, y
+        return current_data
 
 
 class Trainer:
@@ -474,9 +434,14 @@ class TestDataset:
 
 
 class FeaturesToTensorExtractor:
-    def __init__(self, device):
+    """
+    usage:
+    dataset data must be saved at cpu !!!
+    self.device = "cpu"
+    """
+    def __init__(self):
         self.logger = logger
-        self.device = device
+        self.device = "cpu"
 
     # only extract node features from .json, [x, y, z, n1, n2, n3]
     def node_features(self, file_path, num_points):
@@ -494,33 +459,39 @@ class FeaturesToTensorExtractor:
                 part_label = value["label"]
 
                 if len(part_coords) > 0:
-                    part_coords_tensor = torch.tensor(part_coords, dtype=torch.float64, device=self.device)
-                    part_norms_tensor = torch.tensor(part_norms, dtype=torch.float64, device=self.device)
+                    part_coords_tensor = torch.tensor(part_coords, dtype=torch.float32, device=self.device)
+                    part_norms_tensor = torch.tensor(part_norms, dtype=torch.float32, device=self.device)
                     part_labels_tensor = torch.tensor(part_label, dtype=torch.long, device=self.device)
 
                     part_node_features_tensor = torch.cat((part_coords_tensor, part_norms_tensor), dim=1)
 
-                    part_node_features_tensor_shape_0 = part_node_features_tensor.shape[0]
+                    part_node_features_tensor = self.sampled_for_node_features(features_tensor=part_node_features_tensor,
+                                                                               num_points=num_points,)
 
-                    # If the input data is greater than num_points, a random sampling method is used
-                    if part_node_features_tensor_shape_0 > num_points:
-                        idx = torch.randperm(n=part_node_features_tensor_shape_0, device=self.device)[: num_points]
+                    # part_node_features_tensor_shape_0 = part_node_features_tensor.shape[0]
 
-                        part_node_features_tensor = part_node_features_tensor[idx]
-
-                    # If the input data is less than num_points, a repeated sampling method is used
-                    else:
-                        repeat_num = num_points - part_node_features_tensor_shape_0
-
-                        idx = torch.randint(low=0, high=part_node_features_tensor_shape_0, size=(repeat_num, ), device=self.device)
-
-                        extra_features = part_node_features_tensor[idx]
-
-                        noise = torch.randn_like(extra_features)
-
-                        extra_features = extra_features + noise * 0.01
-
-                        part_node_features_tensor = torch.cat((part_node_features_tensor, extra_features), dim=0)
+                    # # If the input data is greater than num_points, a random sampling method is used
+                    # if part_node_features_tensor_shape_0 > num_points:
+                    #     idx = torch.randperm(n=part_node_features_tensor_shape_0, device=self.device)[: num_points]
+                    #
+                    #     part_node_features_tensor = part_node_features_tensor[idx]
+                    #
+                    # # If the input data is less than num_points, a repeated sampling method is used
+                    # else:
+                    #     repeat_num = num_points - part_node_features_tensor_shape_0
+                    #
+                    #     idx = torch.randint(low=0,
+                    #                         high=part_node_features_tensor_shape_0,
+                    #                         size=(repeat_num, ),
+                    #                         device=self.device)
+                    #
+                    #     extra_features = part_node_features_tensor[idx]
+                    #
+                    #     noise = torch.randn_like(extra_features)
+                    #
+                    #     extra_features = extra_features + noise * 0.01
+                    #
+                    #     part_node_features_tensor = torch.cat((part_node_features_tensor, extra_features), dim=0)
 
                     current_sample = {
                         "part_name": part_name,
@@ -536,6 +507,52 @@ class FeaturesToTensorExtractor:
             self.logger.warning(f"File {file_path} not found\n")
 
             return None
+
+    def sampled_for_node_features(self, features_tensor, num_points):
+        """
+        :param features_tensor: features_tensor
+        :param num_points: user define number of dim
+        :return:
+        """
+
+        shape_0 = features_tensor.shape[0]
+
+        if shape_0 == 0:
+            raise ValueError("Empty point cloud")
+
+        # If the input data is greater than num_points, a random sampling method is used
+        elif shape_0 > num_points:
+            idx = torch.randperm(n=shape_0, device=features_tensor.device)[: num_points]
+
+            sampled = features_tensor[idx]
+
+        # If the input data is less than num_points, a repeated sampling method is used
+        elif shape_0 < num_points:
+            repeat_num = num_points - shape_0
+
+            idx = torch.randint(low=0,
+                                high=shape_0,
+                                size=(repeat_num,),
+                                device=features_tensor.device)
+
+            extra_features = features_tensor[idx]
+
+            coords = extra_features[:, :3]
+            normals = extra_features[:, 3:]
+
+            noise = torch.randn_like(coords)
+
+            coords = coords + noise * 0.01
+
+            # extra_features = extra_features + noise * 0.01
+            extra_features = torch.cat((coords, normals), dim=1)
+
+            sampled = torch.cat((features_tensor, extra_features), dim=0)
+
+        else:
+            sampled = features_tensor
+
+        return sampled
 
 
 class NodeEmbedding(nn.Module):
@@ -603,8 +620,8 @@ if __name__ == '__main__':
     # dataset_tester = TestDataset(data_type="mlp")
     # dataset_tester.test(dataset)
 
-    features_to_tensor_extractor = FeaturesToTensorExtractor(device="cuda")
-    current_dataset = features_to_tensor_extractor.node_features(file_path=file_path, num_points=200)
+    features_to_tensor_extractor = FeaturesToTensorExtractor()
+    current_dataset = features_to_tensor_extractor.node_features(file_path=file_path, num_points=1024)
 
     for i in current_dataset:
         features_shape = i["features"].shape
